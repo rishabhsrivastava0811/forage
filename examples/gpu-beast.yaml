@@ -1,0 +1,128 @@
+# GPU Beast Mode — local 70B model, aggressive evolution, maximum hardware
+# Perfect for: serious runs on dedicated GPU machines, fastest path to self-sustainability
+# Requirements: 48GB+ VRAM (A100, 2x RTX 4090, etc.), Ollama installed
+# Expected API cost: ~$0/month (everything runs locally)
+
+name: "beast-agent"
+
+seed:
+  amount: 100.00
+
+providers:
+  # Local 70B model — near-frontier quality at $0
+  - name: ollama
+    base_url: "http://localhost:11434"
+    models: ["llama3.1:70b"]
+    tier: complex
+
+  # Local 8B model for routine tasks — fast and free
+  - name: ollama
+    base_url: "http://localhost:11434"
+    models: ["llama3.1:8b"]
+    tier: routine
+
+  # Cloud fallback (optional, for tasks that need frontier quality)
+  - name: deepseek
+    api_key: "${DEEPSEEK_API_KEY}"
+    models: ["deepseek-chat"]
+    tier: critical
+
+hardware:
+  mode: "auto"
+  # Let it detect your GPU automatically.
+  # Or override:
+  # mode: "manual"
+  # cpu_cores: 16
+  # ram_gb: 64
+  # gpu:
+  #   enabled: true
+  #   vram_gb: 48
+  #   count: 1
+
+revenue:
+  default:
+    owner: 0.00
+    reinvest: 1.00
+    reserve: 0.00
+  milestones:
+    - name: "survival"
+      trigger:
+        balance_above: 150.00
+      split:
+        owner: 0.10
+        reinvest: 0.80
+        reserve: 0.10
+    - name: "sustainable"
+      trigger:
+        balance_above: 500.00
+        consecutive_profitable_days: 14
+      split:
+        owner: 0.40
+        reinvest: 0.40
+        reserve: 0.20
+    - name: "growth"
+      trigger:
+        balance_above: 2000.00
+        monthly_revenue_above: 200.00
+      split:
+        owner: 0.60
+        reinvest: 0.20
+        reserve: 0.20
+    - name: "harvest"
+      trigger:
+        balance_above: 5000.00
+        monthly_revenue_above: 500.00
+      split:
+        owner: 0.80
+        reinvest: 0.10
+        reserve: 0.10
+
+spending:
+  daily_limit: 10.00
+  per_action_limit: 2.00
+  emergency_reserve: 20.00
+
+payout:
+  method: "manual"
+  min_payout: 10.00
+  frequency: "weekly"
+
+capabilities:
+  content_creation: true
+  digital_products: true
+  api_services: true
+  inference_service: true       # Sell your GPU's inference as a paid API
+  crypto_yield: false
+  trading: false
+  freelancing: false
+  allowed_services:
+    - "api.deepseek.com"
+    - "gumroad.com"
+    - "rapidapi.com"
+    - "api.cloudflare.com"
+    - "api.github.com"
+  deploy_targets:
+    - "fly.io"
+    - "cloudflare-pages"
+
+evolution:
+  enabled: true
+  cycle: "hourly"              # Evolve every hour — GPU makes this cheap
+  strategy: "aggressive"       # Full SOS response, unlimited mutations
+
+schedule:
+  wake_interval_minutes: 15    # Wake every 15 min — more cycles, faster learning
+  active_hours: null            # 24/7 operation
+
+dashboard:
+  enabled: true
+  port: 3000
+  host: "0.0.0.0"              # Accessible from network (for monitoring remotely)
+
+logging:
+  level: "info"
+  file: "logs/forage.log"
+  max_size_mb: 100
+
+notifications:
+  enabled: false

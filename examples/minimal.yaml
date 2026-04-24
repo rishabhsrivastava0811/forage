@@ -1,0 +1,85 @@
+# Minimal setup — $10, Groq free tier, conservative
+# Perfect for: testing, low-risk first run, learning how it works
+# Expected cost: ~$0/month (Groq free tier covers routine thinking)
+
+name: "starter-agent"
+
+seed:
+  amount: 10.00
+
+providers:
+  - name: groq
+    api_key: "${GROQ_API_KEY}"
+    models: ["llama-3.1-8b-instant"]
+    tier: routine
+
+hardware:
+  mode: "auto"
+
+revenue:
+  default:
+    owner: 0.00
+    reinvest: 1.00
+    reserve: 0.00
+  milestones:
+    - name: "first-profit"
+      trigger:
+        balance_above: 15.00
+      split:
+        owner: 0.20
+        reinvest: 0.60
+        reserve: 0.20
+    - name: "sustainable"
+      trigger:
+        balance_above: 50.00
+        consecutive_profitable_days: 7
+      split:
+        owner: 0.50
+        reinvest: 0.30
+        reserve: 0.20
+
+spending:
+  daily_limit: 1.00
+  per_action_limit: 0.50
+  emergency_reserve: 3.00
+
+payout:
+  method: "manual"
+  min_payout: 5.00
+  frequency: "weekly"
+
+capabilities:
+  content_creation: true
+  digital_products: true
+  api_services: false
+  inference_service: false
+  crypto_yield: false
+  trading: false
+  freelancing: false
+  allowed_services:
+    - "api.groq.com"
+
+evolution:
+  enabled: true
+  cycle: "daily"
+  strategy: "conservative"
+
+schedule:
+  wake_interval_minutes: 60
+  active_hours:
+    start: "08:00"
+    end: "22:00"
+    timezone: "UTC"
+
+dashboard:
+  enabled: true
+  port: 3000
+  host: "127.0.0.1"
+
+logging:
+  level: "info"
+  file: "logs/forage.log"
+  max_size_mb: 50
+
+notifications:
+  enabled: false

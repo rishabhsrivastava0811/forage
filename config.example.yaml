@@ -1,0 +1,328 @@
+# ============================================================
+# NERFED — Configuration
+# ============================================================
+# Copy this file to config.yaml and edit with your settings.
+# The agent reads this on startup and respects all limits.
+# ============================================================
+
+# === IDENTITY ===
+name: "my-agent"
+# A human-readable name for your agent. Used in logs and dashboard.
+
+# === SEED MONEY ===
+seed:
+  amount: 50.00
+  currency: "USD"
+  # How much you're giving the agent to start with.
+  # Minimum: $10. The agent will try to grow this.
+
+# === LLM PROVIDERS ===
+# Configure one or more. Agent picks the cheapest that can handle each task.
+# API keys can reference environment variables with ${VAR_NAME} syntax.
+providers:
+  # --- Free / Ultra-Cheap (for routine thinking) ---
+  - name: groq
+    api_key: "${GROQ_API_KEY}"
+    models: ["llama-3.1-8b-instant"]
+    tier: routine
+    # Groq has generous free tier. ~$0.00009/thinking cycle.
+    # Good for: status checks, simple decisions, logging
+
+  # --- Cheap (for important decisions) ---
+  - name: openai
+    api_key: "${OPENAI_API_KEY}"
+    models: ["gpt-4.1-nano", "gpt-4o-mini"]
+    tier: important
+    # ~$0.0003-0.0005/thinking cycle.
+    # Good for: revenue decisions, strategy, tool creation
+
+  # --- Mid-range (for complex reasoning) ---
+  - name: deepseek
+    api_key: "${DEEPSEEK_API_KEY}"
+    models: ["deepseek-chat"]
+    tier: complex
+    # ~$0.0008/thinking cycle.
+    # Good for: code generation, complex analysis
+
+  # --- Premium (for critical moments only) ---
+  # - name: anthropic
+  #   api_key: "${ANTHROPIC_API_KEY}"
+  #   models: ["claude-haiku-4-5-20251001"]
+  #   tier: critical
+  #   # ~$0.003/thinking cycle. Used sparingly.
+
+  # --- Local model (free, speed depends on your hardware) ---
+  # - name: ollama
+  #   base_url: "http://localhost:11434"
+  #   models: ["llama3.1:8b"]
+  #   tier: routine
+  #   # Free. Requires Ollama running locally.
+  #   # CPU: ~3-5 tok/s. GPU (RTX 3090): ~80-120 tok/s.
+  #   # With good hardware, local models become the primary brain —
+  #   # the agent barely needs to spend on API calls.
+
+  # --- Local model on GPU (if you have the hardware) ---
+  # - name: ollama
+  #   base_url: "http://localhost:11434"
+  #   models: ["llama3.1:70b"]        # Runs on 48GB+ VRAM
+  #   tier: complex
+  #   # On an A100/H100: ~40-60 tok/s for 70B. Near-GPT-4 quality, $0 cost.
+  #   # This changes the game — the agent's thinking becomes effectively free.
+
+# === HARDWARE ===
+# Tell the agent what it's running on so it can plan accordingly.
+# More hardware = agent runs local models = less API spend = faster growth.
+# The agent auto-detects what it can, but you can override here.
+hardware:
+  mode: "auto"
+  # "auto"    — agent detects available CPU, RAM, GPU at startup
+  # "manual"  — you specify below (useful for Docker or remote setups)
+
+  # Uncomment to override auto-detection:
+  # cpu_cores: 8
+  # ram_gb: 32
+  # gpu:
+  #   enabled: true
+  #   vram_gb: 24                    # e.g., RTX 4090 = 24GB
+  #   count: 1                       # number of GPUs
+
+  # How the agent uses hardware tiers:
+  #
+  #   MINIMAL (1 core, 1GB RAM, no GPU):
+  #     → API-only mode. All thinking via remote APIs.
+  #     → ~$3-10/month in API costs.
+  #     → Agent is frugal but slow.
+  #
+  #   STANDARD (4 cores, 8GB RAM, no GPU):
+  #     → Can run small local models (Phi-3, Llama 8B quantized)
+  #     → Routine thinking is free. Important decisions via API.
+  #     → ~$1-3/month in API costs.
+  #
+  #   STRONG (8+ cores, 16-32GB RAM, no GPU):
+  #     → Runs Llama 8B at decent speed. Can attempt 13B quantized.
+  #     → Most thinking is free. Only complex tasks hit APIs.
+  #     → ~$0.50-2/month in API costs.
+  #
+  #   GPU (any cores/RAM, 8GB+ VRAM):
+  #     → Runs 7-13B models at 50-100+ tok/s. Fast and free.
+  #     → 24GB+ VRAM: runs 70B models. Near-frontier quality at $0.
+  #     → API costs approach zero. Massive advantage.
+  #
+  #   BEAST (16+ cores, 64GB+ RAM, 48GB+ VRAM or multi-GPU):
+  #     → Runs 70B+ models at full speed.
+  #     → Can run parallel evolution (multiple agent variants simultaneously).
+  #     → Can serve local inference to earn revenue (sell API access).
+  #     → API costs: $0. The agent IS the compute.
+  #     → This is the fastest path to self-sustainability.
+
+# === REVENUE SPLIT ===
+# How earnings are divided between you and the agent.
+# The agent starts by reinvesting everything, then pays you
+# more as it hits milestones you define.
+revenue:
+
+  # Default split (active from day 1)
+  default:
+    owner: 0.00        # You get 0% initially
+    reinvest: 1.00     # Agent keeps 100%
+    reserve: 0.00      # Emergency fund contribution
+
+  # Milestones: as the agent proves itself, the split changes.
+  # Each milestone requires ALL its triggers to be met.
+  # Milestones are evaluated in order — first match wins.
+  # Later milestones should have higher thresholds.
+  milestones:
+
+    # Stage 1: Agent has grown beyond seed money
+    - name: "survival"
+      trigger:
+        balance_above: 75.00       # Has 50% more than it started with
+      split:
+        owner: 0.10                # You get 10%
+        reinvest: 0.80             # Agent keeps 80%
+        reserve: 0.10              # 10% to emergency fund
+
+    # Stage 2: Agent is consistently profitable
+    - name: "sustainability"
+      trigger:
+        balance_above: 200.00
+        consecutive_profitable_days: 14    # 2 weeks in the green
+      split:
+        owner: 0.30                # You get 30%
+        reinvest: 0.50
+        reserve: 0.20
+
+    # Stage 3: Agent is reliably growing
+    - name: "growth"
+      trigger:
+        balance_above: 500.00
+        consecutive_profitable_days: 30
+      split:
+        owner: 0.50                # You get half
+        reinvest: 0.30
+        reserve: 0.20
+
+    # Stage 4: Agent is mature and stable
+    - name: "maturity"
+      trigger:
+        balance_above: 2000.00
+        monthly_revenue_above: 100.00      # Earning $100+/month
+      split:
+        owner: 0.70                # You get 70%
+        reinvest: 0.15
+        reserve: 0.15
+
+    # Stage 5: Cash cow
+    - name: "harvest"
+      trigger:
+        balance_above: 5000.00
+        monthly_revenue_above: 500.00
+      split:
+        owner: 0.85
+        reinvest: 0.05
+        reserve: 0.10
+
+# === SPENDING LIMITS ===
+# Hard limits the agent cannot exceed, regardless of strategy.
+spending:
+  daily_limit: 5.00               # Max total spend per 24h
+  per_action_limit: 1.00          # Max per single action
+  emergency_reserve: 10.00        # NEVER spend below this balance
+  # When balance < 2x emergency_reserve, agent enters "frugal mode"
+  # and reduces daily_limit to 50% automatically.
+
+# === OWNER PAYOUT ===
+# How you receive your share of earnings.
+payout:
+  method: "manual"
+  # Options:
+  #   "manual"  — accumulates in agent, you withdraw via CLI
+  #   "crypto"  — auto-sends to your wallet
+  #   "stripe"  — auto-sends to your Stripe account (requires setup)
+
+  min_payout: 5.00                # Don't bother sending less than this
+
+  # --- Crypto payout settings ---
+  # wallet_address: "your-wallet-address-here"
+  # chain: "solana"               # "solana" | "base" | "ethereum" | "arbitrum"
+  # Solana recommended: ~$0.001/tx. Ethereum: ~$1-5/tx.
+
+  # --- Stripe payout settings ---
+  # stripe_account_id: "acct_xxxxx"
+
+  # --- Payout frequency ---
+  frequency: "weekly"             # "daily" | "weekly" | "monthly" | "on_milestone"
+
+# === CAPABILITIES ===
+# What the agent is allowed to do to earn money.
+# Disable anything you're not comfortable with.
+capabilities:
+
+  # Revenue strategies (enable/disable)
+  api_services: true              # Build & deploy API micro-services
+  digital_products: true          # Create & sell digital products (Gumroad)
+  content_creation: true          # Write blogs, SEO content
+  inference_service: false        # Sell local model inference as paid API (needs GPU)
+  crypto_yield: false             # DeFi yield farming — RISKY, disabled by default
+  trading: false                  # Crypto/token trading — VERY RISKY, disabled by default
+  freelancing: false              # Requires human identity, disabled
+  # NOTE: inference_service only works if you have a local model configured
+  # and enough GPU/CPU headroom. The agent will serve its own model as a
+  # paid endpoint — earning revenue directly from your hardware.
+
+  # External services the agent is allowed to interact with
+  # The agent CANNOT make requests to domains not on this list.
+  allowed_services:
+    - "api.groq.com"
+    - "api.openai.com"
+    - "api.deepseek.com"
+    - "api.anthropic.com"
+    - "api.together.xyz"
+    - "gumroad.com"
+    - "rapidapi.com"
+    - "api.cloudflare.com"
+    - "api.github.com"
+    - "api.stripe.com"
+
+  # Services the agent can deploy TO
+  deploy_targets:
+    - "fly.io"                    # For API services
+    - "cloudflare-pages"          # For static sites
+    - "vercel"                    # For web apps
+
+# === EVOLUTION ===
+# Self-improvement settings.
+evolution:
+  enabled: true
+  cycle: "daily"                  # "hourly" | "daily" | "weekly"
+  strategy: "conservative"        # "conservative" | "balanced" | "aggressive"
+
+  # conservative (default, recommended):
+  #   - 5% base mutation rate
+  #   - Only modifies prompt segments, never tools or workflow
+  #   - Requires >5% improvement to keep a change
+  #   - Max 1 change per cycle
+
+  # balanced:
+  #   - 15% base mutation rate
+  #   - Can modify prompts and tools
+  #   - Requires >2% improvement
+  #   - Max 3 changes per cycle
+  #   - Stress-responsive (increases rate when failing)
+
+  # aggressive:
+  #   - 30% base mutation rate
+  #   - Can modify prompts, tools, and workflow
+  #   - Requires >0% improvement (any improvement kept)
+  #   - Unlimited changes per cycle
+  #   - Full SOS response (10x rate under stress)
+  #   - May change model selection
+
+# === WAKE SCHEDULE ===
+# How often the agent wakes up to check on things and act.
+schedule:
+  wake_interval_minutes: 30       # Wake every 30 minutes
+  active_hours:                   # Optional: only run during these hours
+    start: "06:00"
+    end: "23:00"
+    timezone: "UTC"
+  # Outside active hours, agent sleeps (no spending).
+  # Set to null for 24/7 operation:
+  # active_hours: null
+
+# === DASHBOARD ===
+# Local web UI for monitoring your agent.
+dashboard:
+  enabled: true
+  port: 3000
+  host: "127.0.0.1"              # localhost only
+  # To access from other devices on your network:
+  # host: "0.0.0.0"
+
+# === LOGGING ===
+logging:
+  level: "info"                   # "debug" | "info" | "warning" | "error"
+  file: "logs/forage.log"
+  max_size_mb: 50
+  # The audit log (financial actions) is always at max verbosity
+  # and stored separately in the SQLite database.
+
+# === NOTIFICATIONS ===
+# Get notified about important events.
+notifications:
+  enabled: false
+  # Uncomment one:
+  # discord_webhook: "https://discord.com/api/webhooks/..."
+  # slack_webhook: "https://hooks.slack.com/services/..."
+  # telegram_bot_token: "..."
+  # telegram_chat_id: "..."
+
+  # What to notify about:
+  events:
+    - "milestone_reached"         # Hit a new revenue milestone
+    - "payout_sent"               # Money sent to you
+    - "balance_low"               # Below 2x emergency reserve
+    - "agent_dying"               # Below emergency reserve
+    - "evolution_improvement"     # Agent improved itself
+    - "new_skill_learned"         # Agent built a new tool
+    - "first_dollar_earned"       # The big moment

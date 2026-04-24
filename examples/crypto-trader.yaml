@@ -1,0 +1,122 @@
+# Crypto Trader — trading enabled, crypto payouts, high risk
+# Perfect for: crypto-native users willing to risk seed money for higher potential returns
+# WARNING: Trading is risky. The agent can lose money. Only use funds you can afford to lose.
+
+name: "trader-agent"
+
+seed:
+  amount: 50.00
+
+providers:
+  - name: groq
+    api_key: "${GROQ_API_KEY}"
+    models: ["llama-3.1-8b-instant"]
+    tier: routine
+
+  - name: deepseek
+    api_key: "${DEEPSEEK_API_KEY}"
+    models: ["deepseek-chat"]
+    tier: important
+
+  - name: openai
+    api_key: "${OPENAI_API_KEY}"
+    models: ["gpt-4o-mini"]
+    tier: complex
+
+hardware:
+  mode: "auto"
+
+revenue:
+  default:
+    owner: 0.00
+    reinvest: 0.90
+    reserve: 0.10
+  milestones:
+    - name: "breakeven"
+      trigger:
+        balance_above: 75.00
+      split:
+        owner: 0.10
+        reinvest: 0.70
+        reserve: 0.20
+    - name: "profitable"
+      trigger:
+        balance_above: 200.00
+        consecutive_profitable_days: 7
+      split:
+        owner: 0.30
+        reinvest: 0.50
+        reserve: 0.20
+    - name: "consistent"
+      trigger:
+        balance_above: 500.00
+        consecutive_profitable_days: 21
+      split:
+        owner: 0.50
+        reinvest: 0.30
+        reserve: 0.20
+    - name: "whale"
+      trigger:
+        balance_above: 5000.00
+        monthly_revenue_above: 500.00
+      split:
+        owner: 0.70
+        reinvest: 0.15
+        reserve: 0.15
+
+spending:
+  daily_limit: 8.00
+  per_action_limit: 2.00
+  emergency_reserve: 15.00
+
+payout:
+  method: "crypto"
+  wallet_address: "YOUR_SOLANA_WALLET_ADDRESS"
+  chain: "solana"
+  min_payout: 10.00
+  frequency: "weekly"
+
+capabilities:
+  content_creation: true
+  digital_products: true
+  api_services: false
+  inference_service: false
+  crypto_yield: true           # DeFi yield farming
+  trading: true                 # Active trading (HIGH RISK)
+  freelancing: false
+  allowed_services:
+    - "api.groq.com"
+    - "api.deepseek.com"
+    - "api.openai.com"
+    - "gumroad.com"
+    - "api.coingecko.com"
+    - "api.dexscreener.com"
+
+evolution:
+  enabled: true
+  cycle: "daily"
+  strategy: "balanced"
+
+schedule:
+  wake_interval_minutes: 15    # Fast cycles for trading
+  active_hours: null            # 24/7 — markets never sleep
+
+dashboard:
+  enabled: true
+  port: 3000
+  host: "127.0.0.1"
+
+logging:
+  level: "info"
+  file: "logs/forage.log"
+  max_size_mb: 50
+
+notifications:
+  enabled: false
+  # Strongly recommended for trading:
+  # discord_webhook: "https://discord.com/api/webhooks/..."
+  # events:
+  #   - "milestone_reached"
+  #   - "payout_sent"
+  #   - "balance_low"
+  #   - "agent_dying"

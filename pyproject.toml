@@ -1,0 +1,57 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "forage"
+version = "0.1.0"
+description = "An AI agent that survives, earns, and evolves on its own"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [
+    { name = "Nerfed Contributors" },
+]
+keywords = ["ai", "agent", "autonomous", "evolution", "self-improving"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "click>=8.1",              # CLI framework
+    "pyyaml>=6.0",             # Config parsing
+    "litellm>=1.40",           # LLM routing (any provider)
+    "httpx>=0.27",             # HTTP client
+    "apscheduler>=3.10",       # Task scheduling
+    "chromadb>=0.5",           # Vector store for memory/skills
+    "rich>=13.0",              # Terminal formatting
+    "uvicorn>=0.30",           # Dashboard server
+    "fastapi>=0.111",          # Dashboard API
+    "jinja2>=3.1",             # Dashboard templates
+]
+
+[project.optional-dependencies]
+crypto = [
+    "solders>=0.21",           # Solana wallet
+    "web3>=7.0",               # Ethereum/Base wallet
+]
+local-models = [
+    "ollama>=0.3",             # Ollama client for local models
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+forage = "forage.cli:main"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"

@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          pip install -e ".[dev]"
+
+      - name: Lint with ruff
+        run: |
+          ruff check forage/
+
+      - name: Syntax check all Python files
+        run: |
+          python -c "
+          import ast, os, sys
+          errors = []
+          for root, dirs, files in os.walk('nerfed'):
+              for f in files:
+                  if f.endswith('.py'):
+                      path = os.path.join(root, f)
+                      try:
+                          with open(path) as fh:
+                              ast.parse(fh.read())
+                      except SyntaxError as e:
+                          errors.append(f'{path}: {e}')
+          if errors:
+              for e in errors:
+                  print(e, file=sys.stderr)
+              sys.exit(1)
+          print(f'All Python files pass syntax check')
+          "
+
+      - name: Verify imports
+        run: |
+          python -c "
+          from forage.infra.config import load_config, NerfedConfig
+          from forage.infra.database import init_db
+          from forage.safety.audit import AuditLog
+          from forage.safety.limits import SpendingLimiter
+          from forage.economy.ledger import Ledger
+          from forage.economy.wallet import Wallet
+          from forage.economy.revenue import RevenueEngine
+          from forage.economy.payout import PayoutManager
+          from forage.agent.genome import AgentGenome, PromptSegment
+          from forage.agent.survival import SurvivalEngine
+          from forage.evolution.genome_store import GenomeStore
+          from forage.evolution.fitness import FitnessEvaluator
+          from forage.evolution.mutation import MutationEngine
+          from forage.evolution.engine import EvolutionEngine
+          from forage.capabilities.base import Capability
+          from forage.capabilities.content import ContentCapability
+          from forage.capabilities.digital_product import DigitalProductCapability
+          from forage.safety.killswitch import KillSwitch
+          from forage.infra.scheduler import AgentScheduler
+          print('All imports successful')
+          "

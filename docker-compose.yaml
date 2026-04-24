@@ -1,0 +1,41 @@
+# Run with: docker compose up -d
+#
+# Your agent runs in a container. State persists in ./data/
+# Dashboard available at http://localhost:3000
+#
+# By default there are NO resource limits — the agent uses whatever
+# hardware you give it. If you're running on a beefy machine with
+# 128GB RAM and GPUs, the agent benefits from all of it (local model
+# inference, parallel evolution, faster everything).
+#
+# To add limits, uncomment the deploy section below.
+
+services:
+  forage:
+    build: .
+    container_name: forage-agent
+    restart: unless-stopped
+    ports:
+      - "3000:3000"            # Dashboard
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./data:/data           # Persistent state (SQLite, logs, skills)
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # Add more API keys as needed
+
+    # === RESOURCE LIMITS (optional) ===
+    # Uncomment to cap resources. Leave commented for unlimited.
+    # deploy:
+    #   resources:
+    #     limits:
+    #       cpus: "4.0"          # Number of CPU cores
+    #       memory: 8G           # RAM limit
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia   # Uncomment for GPU access
+    #           count: all       # "all" or a number like 1
+    #           capabilities: [gpu]
