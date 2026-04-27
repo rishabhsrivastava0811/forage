@@ -36,15 +36,22 @@ def status(ctx):
 
     agent = Agent.from_config(ctx.obj["config_path"])
     status = agent.get_status()
-    click.echo(f"Agent: {status['name']}")
-    click.echo(f"State: {status['state']}")
-    click.echo(f"Balance: ${status['balance']:.2f}")
-    click.echo(f"Runway: {status['runway_days']} days")
-    click.echo(f"Milestone: {status['current_milestone']}")
-    click.echo(f"Total earned: ${status['total_earned']:.2f}")
-    click.echo(f"Total paid to owner: ${status['total_paid_owner']:.2f}")
-    click.echo(f"Generation: {status['generation']}")
-    click.echo(f"Uptime: {status['uptime_days']} days")
+    drive_icons = {"hunger": "🍽️", "fear": "😰", "curiosity": "🔍", "ambition": "🚀", "fatigue": "😴"}
+    drive = status.get("dominant_drive", "curiosity")
+
+    click.echo(f"{status.get('tier_icon', '🌱')} {status['name']} — {status.get('tier_description', '')}")
+    click.echo(f"  Tier:      {status.get('tier_name', 'basic')} (cycle {status.get('cycle_count', 0)})")
+    click.echo(f"  Drive:     {drive_icons.get(drive, '')} {drive}")
+    click.echo(f"  Energy:    {status.get('energy', 1.0):.0%}")
+    click.echo(f"  Health:    {status.get('health', 1.0):.0%}")
+    click.echo(f"  Balance:   ${status['balance']:.2f}")
+    click.echo(f"  Runway:    {status['runway_days']} days")
+    click.echo(f"  Milestone: {status['current_milestone']}")
+    click.echo(f"  Earned:    ${status['total_earned']:.2f}")
+    click.echo(f"  Paid out:  ${status['total_paid_owner']:.2f}")
+    click.echo(f"  Genome:    gen {status['generation']} | lineage gen {status.get('lineage_gen', 0)}")
+    click.echo(f"  Uptime:    {status['uptime_days']} days")
+    click.echo(f"  Next:      {status.get('next_unlock', '')}")
 
 
 @main.command()

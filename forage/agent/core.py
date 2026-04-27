@@ -21,8 +21,13 @@ from forage.agent.genome import AgentGenome
 from forage.agent.memory import AgentMemory
 from forage.agent.skills import SkillLibrary
 from forage.agent.survival import SurvivalEngine
+from forage.agent.organism import Organism
 
 console = Console()
+
+# Stage symbols for display
+STAGE_ICONS = {"seed": "🌱", "sprout": "🌿", "sapling": "🌳", "mature": "🏛️", "elder": "🦉"}
+DRIVE_ICONS = {"hunger": "🍽️", "fear": "😰", "curiosity": "🔍", "ambition": "🚀", "fatigue": "😴"}
 
 
 class Agent:
@@ -37,6 +42,7 @@ class Agent:
         self.memory = AgentMemory(config)
         self.skills = SkillLibrary(config)
         self.survival = SurvivalEngine(config, self.wallet, self.ledger)
+        self.organism = Organism(config)
         self.genome = self._load_or_create_genome()
         self.capabilities = self._load_capabilities()
         self._state = "idle"
@@ -96,7 +102,7 @@ class Agent:
         console.print("[yellow]Agent stopped.[/]")
 
     def _run_cycle(self) -> None:
-        """One iteration of the 8-step loop."""
+        """One iteration of the 8-step loop — now driven by the organism."""
         # 1. Check kill switch
         kill_file = self.config.data_dir / "KILL"
         if kill_file.exists():
@@ -113,15 +119,43 @@ class Agent:
             self._should_stop = True
             return
 
+        # 2b. Organism heartbeat — update drives, vitals, check tier unlocks
+        org_status = self.organism.heartbeat(
+            balance=vitals["balance"],
+            daily_revenue=self.ledger.monthly_revenue() / 30,
+            daily_expenses=self.ledger.daily_spending_avg(7),
+            success_rate=self.memory.success_rate(),
+            experience_count=self.memory.experience_count(),
+            skill_count=self.skills.skill_count(),
+            consecutive_profitable_days=vitals.get("consecutive_profitable_days", 0),
+            monthly_revenue=self.ledger.monthly_revenue(),
+            total_revenue=self.ledger.total_revenue(),
+        )
+        modifiers = self.organism.get_behavior_modifiers()
+
+        tier_icon = org_status.get("tier_icon", "🌱")
+        drive_icon = DRIVE_ICONS.get(org_status["dominant_drive"], "")
+
         console.print(
-            f"[cyan]Cycle[/] | Balance: ${vitals['balance']:.2f} | "
+            f"{tier_icon} [cyan]Cycle {org_status['cycle_count']}[/] | "
+            f"Balance: ${vitals['balance']:.2f} | "
             f"Runway: {vitals['runway_days']}d | "
-            f"Stress: {vitals['stress']:.0%} | "
-            f"Priority: {vitals['goal_priority']}"
+            f"Tier: [bold]{org_status['tier_name']}[/] | "
+            f"Drive: {drive_icon} {org_status['dominant_drive']} | "
+            f"Energy: {org_status['vitals']['energy']:.0%} | "
+            f"Health: {org_status['vitals']['health']:.0%}"
         )
 
-        # 3. Decide
-        action_plan = self._decide(vitals)
+        # 2c. If fatigued, rest instead of acting
+        if modifiers["priority"] == "rest_skip_cycle":
+            self.organism.rest()
+            self.audit.log("rest", "Organism resting — fatigue recovery cycle")
+            console.print(f"  [dim]{drive_icon} Resting... fatigue: {self.organism.drives.fatigue:.0%}[/]")
+            self._save_state()
+            return
+
+        # 3. Decide — organism modifiers influence the decision
+        action_plan = self._decide(vitals, modifiers)
 
         # 4. Act
         if action_plan.get("action") == "idle":
@@ -129,6 +163,14 @@ class Agent:
             console.print(f"[dim]  Idle: {action_plan.get('reasoning', 'conserving resources')}[/]")
         else:
             outcome = self._act(action_plan)
+
+            # Organism reacts to outcome
+            if outcome.get("success"):
+                if outcome.get("revenue", 0) > 0:
+                    self.organism.feed(outcome["revenue"])
+            else:
+                self.organism.take_damage(0.05)
+
             # 5. Reflect
             self._reflect(action_plan, outcome)
             # 6. Pay — process any revenue
@@ -150,9 +192,10 @@ class Agent:
         # 8. Save state
         self._save_state()
 
-    def _decide(self, vitals: dict) -> dict:
-        """Use LLM to decide what to do next."""
-        # Build context
+    def _decide(self, vitals: dict, modifiers: dict | None = None) -> dict:
+        """Use LLM to decide what to do next. Organism drives shape the decision."""
+        modifiers = modifiers or {}
+
         recent = self.memory.recent_experiences(5)
         recent_summary = "\n".join(
             f"- {e['action_type']}: {e['action'][:80]} → reward={e['reward']}"
@@ -162,13 +205,33 @@ class Agent:
         cap_names = [c.name for c in self.capabilities]
         cap_list = ", ".join(cap_names) if cap_names else "none available"
 
+        # Organism drives as context
+        drive_context = ""
+        if modifiers:
+            drive_context = (
+                f"\nOrganism state:\n"
+                f"- Dominant drive: {modifiers.get('dominant_drive', 'unknown')}\n"
+                f"- Priority: {modifiers.get('priority', 'balanced')}\n"
+                f"- Energy: {modifiers.get('energy', 1.0):.0%}\n"
+                f"- Health: {modifiers.get('health', 1.0):.0%}\n"
+            )
+            if modifiers.get("priority") == "maximize_immediate_revenue":
+                drive_context += "- HUNGRY: Focus on actions that earn money immediately.\n"
+            elif modifiers.get("priority") == "minimize_spending_cut_losses":
+                drive_context += "- AFRAID: Minimize spending. Only act if certain of positive return.\n"
+            elif modifiers.get("priority") == "explore_new_strategy":
+                drive_context += "- CURIOUS: Try something you haven't tried before.\n"
+            elif modifiers.get("priority") == "invest_in_growth":
+                drive_context += "- AMBITIOUS: Invest in long-term growth, build new capabilities.\n"
+
         prompt = (
             f"Current state:\n"
             f"- Balance: ${vitals['balance']:.2f}\n"
             f"- Runway: {vitals['runway_days']} days\n"
             f"- Stress: {vitals['stress']:.0%}\n"
             f"- Priority: {vitals['goal_priority']}\n"
-            f"- Milestone: {self.revenue_engine.current_milestone()}\n\n"
+            f"- Milestone: {self.revenue_engine.current_milestone()}\n"
+            f"{drive_context}\n"
             f"Available capabilities: {cap_list}\n\n"
             f"Recent history:\n{recent_summary}\n\n"
             f"What should I do next? Respond with JSON."
@@ -253,6 +316,7 @@ class Agent:
         created = self._get_created_at()
         now = datetime.now(timezone.utc)
         uptime = (now - created).days if created else 0
+        org = self.organism.status()
         return {
             "name": self.config.name,
             "state": self._state,
@@ -263,6 +327,16 @@ class Agent:
             "total_paid_owner": self.ledger.total_owner_payouts(),
             "generation": self.genome.generation,
             "uptime_days": uptime,
+            # Organism
+            "tier_name": org["tier_name"],
+            "tier_icon": org["tier_icon"],
+            "tier_description": org["tier_description"],
+            "dominant_drive": org["dominant_drive"],
+            "energy": org["vitals"]["energy"],
+            "health": org["vitals"]["health"],
+            "cycle_count": org["cycle_count"],
+            "next_unlock": org["next_unlock"],
+            "lineage_gen": org["lineage"]["total_generations"],
         }
 
     def pause(self) -> None:

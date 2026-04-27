@@ -34,5 +34,10 @@ Thumbs.db
 *.swp
 *.swo
 
+# Runtime
+.forage.pid
+forage.out
+*.out
+
 # Claude
 .claude/

@@ -1,4 +1,4 @@
-# Nerfed Documentation
+# Forage Documentation
 
 ## User Guides
 
@@ -7,7 +7,7 @@
 
 ## Research & Design
 
-Deep technical documentation on why Nerfed works the way it does:
+Deep technical documentation on why Forage works the way it does:
 
 - [Vision & Overview](research/00-VISION.md)
 - [Prior Art](research/01-PRIOR-ART.md) — 15+ projects analyzed
@@ -20,3 +20,4 @@ Deep technical documentation on why Nerfed works the way it does:
 - [Safety](research/08-SAFETY.md) — Risks and guardrails
 - [Build Plan](research/09-BUILD-PLAN.md) — Development roadmap
 - [Open Source Model](research/10-OPEN-SOURCE.md) — Self-hosted architecture
+- [Organism Layer](research/11-ORGANISM.md) — Drives, vitals, fitness-gated tiers, the species model
